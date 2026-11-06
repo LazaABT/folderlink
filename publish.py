@@ -89,8 +89,9 @@ def commit_files(user):
 
 def check_no_secrets(token):
     tracked = git("ls-files").split()
-    if ".env" in tracked:
-        stop(".env is about to be committed. Nothing was pushed.")
+    for name in tracked:
+        if Path(name).name.startswith(".env") and name != ".env.example":
+            stop(f"{name} is about to be committed. Nothing was pushed.")
     for name in tracked:
         if token.encode() in (ROOT / name).read_bytes():
             stop(f"{name} contains your GitHub token. Nothing was pushed.")
