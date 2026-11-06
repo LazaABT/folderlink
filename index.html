@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self'; img-src 'self' blob:; media-src blob:; frame-src blob:; connect-src 'self' https: wss:; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>Folderlink</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="./">Folderlink</a>
+    <span id="status" class="pill" hidden></span>
+  </header>
+
+  <main>
+    <!-- Start screen -->
+    <section id="home" class="home">
+      <h1>Keep a folder the same on two computers</h1>
+      <p class="lead">Files go straight from one browser to the other. Nothing is uploaded to a server.</p>
+      <div class="choices">
+        <div class="choice">
+          <h2>Start on one computer</h2>
+          <button id="pick-host" class="primary" type="button">Choose a folder to share</button>
+          <button id="resume-host" class="secondary" type="button" hidden></button>
+          <p id="host-unsupported" class="note warn" hidden>Folderlink needs desktop Chrome or Edge.</p>
+        </div>
+        <form id="join-form" class="choice">
+          <h2>Join from the other computer</h2>
+          <label for="join-code">Share code</label>
+          <input id="join-code" type="text" autocomplete="off" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX">
+          <button class="primary" type="submit">Connect</button>
+          <p id="join-error" class="note warn" hidden></p>
+        </form>
+      </div>
+    </section>
+
+    <!-- Sharing screen -->
+    <section id="host" class="panel" hidden>
+      <p class="eyebrow">Sharing</p>
+      <h1 id="host-folder" class="path"></h1>
+      <p class="lead">Keep this tab open. Syncing only runs while it is.</p>
+      <div class="code-box">
+        <span class="label">Share code</span>
+        <code id="host-code"></code>
+        <div class="row">
+          <button id="copy-code" class="secondary" type="button">Copy code</button>
+          <button id="copy-link" class="secondary" type="button">Copy link</button>
+        </div>
+      </div>
+      <p class="note">Anyone with this code can read, change and delete files in this folder. Stopping the share retires the code.</p>
+      <h2>Connected computers</h2>
+      <ul id="host-clients" class="clients"></ul>
+      <p id="host-none" class="note">None yet.</p>
+      <h2>Recent changes from other computers</h2>
+      <ul id="host-activity" class="clients activity"></ul>
+      <p id="host-idle" class="note">None yet.</p>
+      <button id="stop-host" class="danger" type="button">Stop sharing</button>
+    </section>
+
+    <!-- Choosing the folder on the joining computer -->
+    <section id="choose" class="panel" hidden>
+      <p class="eyebrow">Connected to</p>
+      <h1 id="choose-name" class="path"></h1>
+      <p class="lead">Choose a folder on this computer to sync with it. Everything in the shared folder is downloaded there, and anything already in your folder is sent to the other computer.</p>
+      <div class="row">
+        <button id="choose-resume" class="primary" type="button" hidden></button>
+        <button id="choose-folder" class="primary" type="button">Choose a folder</button>
+      </div>
+      <p id="choose-unsupported" class="note warn" hidden>Syncing needs desktop Chrome or Edge.</p>
+    </section>
+
+    <!-- Syncing screen -->
+    <section id="client" class="browser" hidden>
+      <div class="sync">
+        <div class="sync-head">
+          <div class="sync-text">
+            <strong id="sync-title"></strong>
+            <span id="sync-detail" class="note"></span>
+          </div>
+          <div class="row">
+            <button id="sync-start" class="primary" type="button" hidden>Start syncing</button>
+            <button id="sync-now" class="secondary" type="button">Sync now</button>
+            <button id="sync-pause" class="secondary" type="button">Pause</button>
+          </div>
+        </div>
+        <div id="sync-bar" class="bar" hidden><span id="sync-fill"></span></div>
+        <div id="held" class="held" hidden>
+          <p id="held-text"></p>
+          <div class="row">
+            <button id="held-apply" class="danger" type="button">Delete them on both computers</button>
+            <button id="held-restore" class="primary" type="button">Restore them</button>
+          </div>
+        </div>
+        <ul id="sync-errors" class="errors" hidden></ul>
+      </div>
+
+      <div class="toolbar">
+        <nav id="crumbs" class="crumbs" aria-label="Folder path"></nav>
+        <span id="sync-folder" class="sr"></span>
+        <input id="filter" type="search" placeholder="Filter this folder" aria-label="Filter this folder">
+      </div>
+
+      <div class="split">
+        <div class="list-wrap">
+          <table class="files">
+            <thead><tr><th scope="col">Name</th><th scope="col" class="num">Size</th><th scope="col" class="when">Modified</th><th scope="col">Status</th></tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+          <p id="empty" class="note center" hidden></p>
+        </div>
+        <aside id="preview" class="preview" hidden>
+          <div class="preview-head">
+            <strong id="preview-name"></strong>
+            <button id="preview-close" class="secondary" type="button">Close</button>
+          </div>
+          <div id="preview-body" class="preview-body"></div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- Lost connection -->
+    <section id="lost" class="panel" hidden>
+      <h1>Connection lost</h1>
+      <p id="lost-text" class="lead"></p>
+      <div class="row">
+        <button id="lost-retry" class="primary" type="button">Try again</button>
+        <a class="secondary link-btn" href="./">Start over</a>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js" integrity="sha384-nlUQ8ZqCbvStErob+biJNzSgltf6urV3VGqhfIfzhmg9RXmpeRm76ELw0pYnKlTR" crossorigin="anonymous"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
