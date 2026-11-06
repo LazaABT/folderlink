@@ -6,6 +6,7 @@ to git's settings or added to the repository.
 import base64
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -17,6 +18,8 @@ import build_config
 
 ROOT = Path(__file__).resolve().parent
 API = "https://api.github.com"
+# Any GitHub token, including old ones that are no longer in .env.
+TOKEN_PATTERN = re.compile(rb"gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}")
 COMMIT_MESSAGE = (
     "Publish Folderlink\n\n"
     "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>\n"
@@ -60,12 +63,12 @@ def git(*args, env=None):
     return result.stdout
 
 
-def ensure_repo(token, owner, name):
+def ensure_repo(token, owner, name, allow_public):
     status, repo = api(token, "GET", f"/repos/{owner}/{name}")
     if status == 200:
-        if not repo.get("private"):
-            stop(f"{owner}/{name} already exists and is public. Choose another GITHUB_REPO.")
-        print(f"Using private repository {owner}/{name}")
+        if not repo.get("private") and not allow_public:
+            stop(f"{owner}/{name} is public. Set GITHUB_PUBLIC=yes in .env if that's intended.")
+        print(f"Using {'private' if repo.get('private') else 'public'} repository {owner}/{name}")
         return
     if status != 404:
         stop(f"couldn't check the repository (GitHub said {status}: {repo.get('message')}).")
@@ -93,8 +96,11 @@ def check_no_secrets(token):
         if Path(name).name.startswith(".env") and name != ".env.example":
             stop(f"{name} is about to be committed. Nothing was pushed.")
     for name in tracked:
-        if token.encode() in (ROOT / name).read_bytes():
-            stop(f"{name} contains your GitHub token. Nothing was pushed.")
+        content = (ROOT / name).read_bytes()
+        if token.encode() in content or TOKEN_PATTERN.search(content):
+            stop(f"{name} contains a GitHub token. Nothing was pushed.")
+    if TOKEN_PATTERN.search(git("log", "--all", "-p").encode("utf-8", "replace")):
+        stop("the commit history contains a GitHub token. Nothing was pushed.")
 
 
 def push(token, owner, name):
@@ -156,7 +162,7 @@ def main():
     print("Signed in to GitHub as " + owner)
 
     build_config.main()
-    ensure_repo(token, owner, name)
+    ensure_repo(token, owner, name, env.get("GITHUB_PUBLIC") == "yes")
     commit_files(user)
     check_no_secrets(token)
     push(token, owner, name)

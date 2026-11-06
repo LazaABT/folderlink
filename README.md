@@ -39,7 +39,7 @@ Browsers can't use the Recycle Bin. Deleted files move to `.folderlink-trash` in
 py publish.py
 ```
 
-GitHub only offers Pages on private repositories with a paid plan such as GitHub Pro. On a free account the push works, then the script stops and says so. Even with a paid plan, the code stays private but the web page itself is public.
+GitHub only offers Pages on private repositories with a paid plan such as GitHub Pro. On a free account the push works, then the script stops and says so. To publish from a public repository instead, make it public on GitHub and set `GITHUB_PUBLIC=yes` in `.env`. The repository only holds this app's code. Your synced files never go there.
 
 The script stops before pushing if `.env` would be committed or if any file contains your token.
 
